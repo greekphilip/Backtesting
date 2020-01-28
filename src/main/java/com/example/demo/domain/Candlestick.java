@@ -5,8 +5,8 @@ import lombok.Data;
 import javax.persistence.*;
 
 @Data
-@Entity(name = "candlestick")
-public class Candlestick {
+@MappedSuperclass
+public abstract class Candlestick {
 
 
     @Id

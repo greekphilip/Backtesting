@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import com.example.demo.domain.Candlestick;
+import com.example.demo.domain.Nano;
 import com.example.demo.service.CandlestickService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -30,53 +31,56 @@ public class Main {
     @PostConstruct
     public void init() throws Exception {
         //If Database is empty then load data from file
-        if (candlestickService.isEmpty()) {
-            insertData("PERLBTC");
-        }
+//        if (candlestickService.isEmpty()) {
+//            insertData("PERLBTC");
+//        }
+//
+//        monitorCoin();
+//        System.out.println("Final Balance is:   " + balance);
+//        System.out.println("Scenario was split: " + splitCounter + " times");
 
-        monitorCoin();
-        System.out.println("Final Balance is:   " + balance);
-        System.out.println("Scenario was split: " + splitCounter + " times");
-    }
 
-
-    public void monitorCoin() {
-        int firstCandleId = candlestickService.getFirstMinute();
-        int lastCandleId = candlestickService.getLastMinute();
-
-        Candlestick currentCandle;
-        Candlestick oneDayCandle;
-
-        double open;
-
-        double yesterdayOpen;
-
-        double percentageChange;
-        double oneDayHigh;
-        double twoDayHigh;
-
-        for (int i = firstCandleId + TWO_DAYS; i < lastCandleId; i++) {
-                currentCandle = candlestickService.getById(i);
-                oneDayCandle = candlestickService.getById(i - ONE_DAY);
-
-                open = currentCandle.getOpen();
-                yesterdayOpen = oneDayCandle.getOpen();
-
-                percentageChange = ((open - yesterdayOpen) * 100) / yesterdayOpen;
-
-                if (percentageChange > 5) {
-                    oneDayHigh = candlestickService.get24hHigh(i);
-                    if (currentCandle.getHigh() > oneDayHigh) {
-                        twoDayHigh = candlestickService.get48hHigh(i);
-                        if (oneDayHigh > twoDayHigh) {
-//                            System.out.println("------------------------------BOUGHT COIN-----------------------");
-                            i = buyCoin(i, lastCandleId, oneDayHigh);
-                        }
-                    }
-                }
-        }
 
     }
+
+
+//    public void monitorCoin() {
+//        int firstCandleId = candlestickService.getFirstMinute();
+//        int lastCandleId = candlestickService.getLastMinute();
+//
+//        Candlestick currentCandle;
+//        Candlestick oneDayCandle;
+//
+//        double open;
+//
+//        double yesterdayOpen;
+//
+//        double percentageChange;
+//        double oneDayHigh;
+//        double twoDayHigh;
+//
+//        for (int i = firstCandleId + TWO_DAYS; i < lastCandleId; i++) {
+//                currentCandle = candlestickService.getById(i);
+//                oneDayCandle = candlestickService.getById(i - ONE_DAY);
+//
+//                open = currentCandle.getOpen();
+//                yesterdayOpen = oneDayCandle.getOpen();
+//
+//                percentageChange = ((open - yesterdayOpen) * 100) / yesterdayOpen;
+//
+//                if (percentageChange > 5) {
+//                    oneDayHigh = candlestickService.get24hHigh(i);
+//                    if (currentCandle.getHigh() > oneDayHigh) {
+//                        twoDayHigh = candlestickService.get48hHigh(i);
+//                        if (oneDayHigh > twoDayHigh) {
+////                            System.out.println("------------------------------BOUGHT COIN-----------------------");
+//                            i = buyCoin(i, lastCandleId, oneDayHigh);
+//                        }
+//                    }
+//                }
+//        }
+//
+//    }
 
     public int buyCoin(int index, int lastMinute, double priceBought) {
 
@@ -155,7 +159,8 @@ public class Main {
         File file = new File(getClass().getClassLoader().getResource("Historical/" + symbol + "history.txt").getFile());
         Scanner input = new Scanner(new FileInputStream(file.toString()));
         String line;
-        Candlestick candlestick = new Candlestick();
+       //Candlestick candlestick = new Candlestick();
+        Candlestick candlestick = new Nano();
         while (input.hasNext()) {
             line = input.nextLine();
             String[] array = line.split(",");
@@ -165,6 +170,7 @@ public class Main {
             String high = array[2].replace("high=", "");
             String low = array[3].replace("low=", "");
             String close = array[4].replace("close=", "");
+
 
             candlestick.setOpenTime(Long.parseLong(openTime));
             candlestick.setOpen(Double.parseDouble(open));

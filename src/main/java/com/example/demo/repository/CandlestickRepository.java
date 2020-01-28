@@ -6,15 +6,18 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface CandlestickRepository extends CrudRepository<Candlestick, Integer> {
+public interface CandlestickRepository<T extends Candlestick> extends CrudRepository<T, Integer> {
 
-    @Query("select max(high) from candlestick where id>= ?1 and id< ?2")
-    public double findHigh(int start, int end);
 
-    @Query("select min(id) from candlestick")
-    public int findFirstMinute();
 
-    @Query("select max(id) from candlestick")
-    public int findLastMinute();
+//    @Query("select max(high) from  where id>= ?1 and id< ?2")
+//    public double findHigh(int start, int end);
+//
+//    @Query("select min(id) from candlestick")
+//    public int findFirstMinute();
+//
+//    @Query("select max(id) from candlestick")
+//    public int findLastMinute();
+
 
 }

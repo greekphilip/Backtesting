@@ -22,6 +22,9 @@ public class Main {
 
     private boolean coinBought = false;
 
+    private final boolean OPTIMISTIC = true;
+    private double balance = 100;
+
     @PostConstruct
     public void init() throws Exception {
         //If Database is empty then load data from file
@@ -30,6 +33,7 @@ public class Main {
         }
 
         monitorCoin();
+        System.out.println("Final Balance is:   " + balance);
     }
 
 
@@ -67,17 +71,88 @@ public class Main {
 
                 if (percentageChange > 5) {
                     oneDayHigh = candlestickService.get24hHigh(i);
-                    if (currentCandle.getHigh() >= oneDayHigh) {
+                    if (currentCandle.getHigh() > oneDayHigh) {
                         twoDayHigh = candlestickService.get48hHigh(i);
-                        if (oneDayHigh >= twoDayHigh) {
-                            System.out.println("------------------------------BOUGHT COIN-----------------------");
-                            //coinBought = true;
+                        if (oneDayHigh > twoDayHigh) {
+//                            System.out.println("------------------------------BOUGHT COIN-----------------------");
+                            i = buyCoin(i, lastCandleId, oneDayHigh);
                         }
                     }
                 }
             }
         }
 
+    }
+
+    public int buyCoin(int index, int lastMinute, double priceBought) {
+
+        Candlestick currentCandle;
+        boolean profit = false;
+        boolean stopLoss = false;
+//        double profitTrigger = priceBought * 0.02 + priceBought;
+        double stopLossTriger = priceBought - priceBought * 0.01;
+        double deviance = 0.01;
+        double previousHigh = priceBought * 0.02 + priceBought;
+
+        for (int i = index; i < lastMinute; i++) {
+
+            currentCandle = candlestickService.getById(i);
+
+            if (currentCandle.getHigh() >= previousHigh) {
+                profit = true;
+            }
+
+            if (currentCandle.getLow() <= stopLossTriger) {
+                stopLoss = true;
+            }
+
+            if (profit && stopLoss) {
+                if (OPTIMISTIC) {
+
+                    // INCREASE TRAIL
+                    double percentageChange = (currentCandle.getHigh() - priceBought) / 100;
+
+                    stopLossTriger = percentageChange - deviance;
+                    stopLossTriger = priceBought * stopLossTriger + priceBought;
+
+                    // STOP LOSS
+                    percentageChange = (stopLossTriger - priceBought) / 100;
+
+                    balance = balance + (balance * percentageChange);
+                    return i;
+                } else {
+                    // STOP LOSS
+                    double percentageChange = (stopLossTriger - priceBought) / 100;
+
+                    balance = balance + (balance * percentageChange);
+                    return i;
+                }
+            } else if (profit) {
+                // INCREASE TRAIL
+                double percentageChange = (currentCandle.getHigh() - priceBought) / 100;
+
+                stopLossTriger = percentageChange - deviance;
+                stopLossTriger = priceBought * stopLossTriger + priceBought;
+
+                // CHECK IF CLOSE PRICE IS LOWER THAN NEW STOP LOSS TRIGGER
+                if (currentCandle.getClose() <= stopLossTriger) {
+                    percentageChange = (stopLossTriger - priceBought) / 100;
+
+                    balance = balance + (balance * percentageChange);
+                    return i;
+                }
+
+                // RESET PROFIT TRIGGER
+                previousHigh = currentCandle.getHigh();
+                profit = false;
+            } else if (stopLoss) {
+                double percentageChange = (stopLossTriger - priceBought) / 100;
+
+                balance = balance + (balance * percentageChange);
+                return i;
+            }
+        }
+        return lastMinute;
     }
 
 

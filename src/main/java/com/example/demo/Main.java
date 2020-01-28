@@ -22,18 +22,21 @@ public class Main {
 
     private boolean coinBought = false;
 
-    private final boolean OPTIMISTIC = true;
+    private final boolean OPTIMISTIC = false;
     private double balance = 100;
+    private int splitCounter=0;
+
 
     @PostConstruct
     public void init() throws Exception {
         //If Database is empty then load data from file
         if (candlestickService.isEmpty()) {
-            insertData("NANOBTC");
+            insertData("PERLBTC");
         }
 
         monitorCoin();
         System.out.println("Final Balance is:   " + balance);
+        System.out.println("Scenario was split: " + splitCounter + " times");
     }
 
 
@@ -43,24 +46,16 @@ public class Main {
 
         Candlestick currentCandle;
         Candlestick oneDayCandle;
-        Candlestick twoDayCandle;
 
         double open;
-        double high;
-        double close;
-        double low;
 
         double yesterdayOpen;
-        double yesterdayHigh;
-        double yesterdayClose;
-        double yesterdayLow;
 
         double percentageChange;
         double oneDayHigh;
         double twoDayHigh;
 
         for (int i = firstCandleId + TWO_DAYS; i < lastCandleId; i++) {
-            if (!coinBought) {
                 currentCandle = candlestickService.getById(i);
                 oneDayCandle = candlestickService.getById(i - ONE_DAY);
 
@@ -79,7 +74,6 @@ public class Main {
                         }
                     }
                 }
-            }
         }
 
     }
@@ -92,7 +86,7 @@ public class Main {
 //        double profitTrigger = priceBought * 0.02 + priceBought;
         double stopLossTriger = priceBought - priceBought * 0.01;
         double deviance = 0.01;
-        double previousHigh = priceBought * 0.02 + priceBought;
+        double previousHigh = priceBought * 0.01 + priceBought;
 
         for (int i = index; i < lastMinute; i++) {
 
@@ -107,36 +101,37 @@ public class Main {
             }
 
             if (profit && stopLoss) {
+                splitCounter++;
                 if (OPTIMISTIC) {
 
                     // INCREASE TRAIL
-                    double percentageChange = (currentCandle.getHigh() - priceBought) / 100;
+                    double percentageChange = (currentCandle.getHigh() - priceBought) / priceBought;
 
                     stopLossTriger = percentageChange - deviance;
-                    stopLossTriger = priceBought * stopLossTriger + priceBought;
+                    stopLossTriger = (priceBought * stopLossTriger) + priceBought;
 
                     // STOP LOSS
-                    percentageChange = (stopLossTriger - priceBought) / 100;
+                    percentageChange = (stopLossTriger - priceBought) / priceBought;
 
                     balance = balance + (balance * percentageChange);
                     return i;
                 } else {
                     // STOP LOSS
-                    double percentageChange = (stopLossTriger - priceBought) / 100;
+                    double percentageChange = (stopLossTriger - priceBought) / priceBought;
 
                     balance = balance + (balance * percentageChange);
                     return i;
                 }
             } else if (profit) {
                 // INCREASE TRAIL
-                double percentageChange = (currentCandle.getHigh() - priceBought) / 100;
+                double percentageChange = (currentCandle.getHigh() - priceBought) / priceBought;
 
                 stopLossTriger = percentageChange - deviance;
-                stopLossTriger = priceBought * stopLossTriger + priceBought;
+                stopLossTriger = (priceBought * stopLossTriger) + priceBought;
 
                 // CHECK IF CLOSE PRICE IS LOWER THAN NEW STOP LOSS TRIGGER
                 if (currentCandle.getClose() <= stopLossTriger) {
-                    percentageChange = (stopLossTriger - priceBought) / 100;
+                    percentageChange = (stopLossTriger - priceBought) / priceBought;
 
                     balance = balance + (balance * percentageChange);
                     return i;
@@ -146,7 +141,7 @@ public class Main {
                 previousHigh = currentCandle.getHigh();
                 profit = false;
             } else if (stopLoss) {
-                double percentageChange = (stopLossTriger - priceBought) / 100;
+                double percentageChange = (stopLossTriger - priceBought) / priceBought;
 
                 balance = balance + (balance * percentageChange);
                 return i;

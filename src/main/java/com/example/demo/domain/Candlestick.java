@@ -5,7 +5,7 @@ import lombok.Data;
 import javax.persistence.*;
 
 @Data
-@Entity(name = "candlestick")
+@MappedSuperclass
 public class Candlestick {
 
 

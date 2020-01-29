@@ -2,8 +2,8 @@ package com.example.demo.domain;
 
 import javax.persistence.*;
 
-@Entity (name = "nano")
-public class Nano extends Candlestick {
+@Entity (name = "Nano")
+public class Nano extends CustomCandlestick {
 
 
 }

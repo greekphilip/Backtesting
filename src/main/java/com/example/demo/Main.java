@@ -22,7 +22,7 @@ public class Main {
 
     private boolean coinBought = false;
 
-    private final boolean OPTIMISTIC = false;
+    private final boolean OPTIMISTIC = true;
     private double balance = 100;
     private int splitCounter=0;
 
@@ -31,7 +31,7 @@ public class Main {
     public void init() throws Exception {
         //If Database is empty then load data from file
         if (candlestickService.isEmpty()) {
-            insertData("PERLBTC");
+            insertData("ALGOBTC");
         }
 
         monitorCoin();

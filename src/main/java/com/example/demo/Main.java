@@ -31,7 +31,9 @@ public class Main {
     @PostConstruct
     public void init() throws Exception {
 
-       databaseUtil.assertData();
+       if(databaseUtil.assertData()){
+
+       }
 
     }
 

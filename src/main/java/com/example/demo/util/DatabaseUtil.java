@@ -114,6 +114,10 @@ public class DatabaseUtil {
             }
         }
 
+        if(!assertDatesDB()){
+            throw new IllegalArgumentException("Something is wrong with the data! DEBUG");
+        }
+
         System.out.println("DATA IS VALID");
         return true;
     }

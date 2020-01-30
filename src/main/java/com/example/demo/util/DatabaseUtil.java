@@ -362,8 +362,23 @@ public class DatabaseUtil {
                 sizeTextCoins.put(coin.getClass().getSimpleName(), size);
             } catch (FileNotFoundException e) {
 //                System.out.println("--ATTENTION! "+coin.getClass().getSimpleName()+", DATA NOT FOUND!");
-                openTimesTimes.put(coin.getClass().getSimpleName(), 0);
-                e.printStackTrace();
+                if (openTimesTimes.get("0") != null) {
+                    openTimesTimes.put("0", openTimesTimes.get("0") + 1);
+                } else {
+                    openTimesTimes.put("0", 1);
+                }
+
+                if (sizeText.get(size) == null) {
+                    sizeText.put(size, 1);
+                } else {
+                    sizeText.put(size, sizeText.get(size) + 1);
+                }
+
+                openTimes.put(coin.getClass().getSimpleName(), "0");
+
+                sizeTextCoins.put(coin.getClass().getSimpleName(), (long) 0);
+
+                //e.printStackTrace();
             } catch (Exception e) {
                 openTimesTimes.put(coin.getClass().getSimpleName(), 0);
                 e.printStackTrace();

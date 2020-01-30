@@ -12,6 +12,10 @@ import javax.persistence.PersistenceContext;
 import java.io.*;
 import java.text.ParseException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static com.example.demo.Values.coins;
 
@@ -26,6 +30,9 @@ public class DatabaseUtil {
 
     @Autowired
     private CandlestickService candlestickService;
+
+    private ExecutorService pool = Executors.newFixedThreadPool(20);
+    private List<Future<?>> futures = new ArrayList<Future<?>>();
 
     private DataDownloader dataDownloader = new DataDownloader();
 
@@ -45,7 +52,7 @@ public class DatabaseUtil {
     }
 
 
-    public boolean assertData() throws InstantiationException, IllegalAccessException, FileNotFoundException {
+    public boolean assertData() throws InstantiationException, IllegalAccessException, FileNotFoundException, ExecutionException, InterruptedException {
 
         initCoins();
 
@@ -91,7 +98,7 @@ public class DatabaseUtil {
                                 if (!assertIndividualDB(coin.getClass().getSimpleName())) {
                                     System.out.println("Resetting " + coin.getClass().getSimpleName());
                                     candlestickService.deleteData(coin.getClass().getSimpleName());
-                                    insertData(coin.getClass().getSimpleName());
+                                    insertDataThread(coin.getClass().getSimpleName());
                                 }
                             }
                             validChoice = true;
@@ -116,9 +123,17 @@ public class DatabaseUtil {
             }
         }
 
+        for (Future<?> future : futures) {
+            future.get();
+        }
+
+        pool.shutdown();
+
         if (!assertDatesDB()) {
             throw new IllegalArgumentException("Something is wrong with the data! DEBUG");
         }
+
+
 
         System.out.println("DATA IS VALID");
         return true;
@@ -145,9 +160,9 @@ public class DatabaseUtil {
             if (!validOpenDate.equals(openTimesDB.get(coin.getClass().getSimpleName())) || validSize != sizeDBCoins.get(coin.getClass().getSimpleName())) {
                 if (!assertIndividualTextFile(coin.getClass().getSimpleName(), validOpenDate, validSize)) {
                     downloadValidData(coin.getClass().getSimpleName(), validOpenDate, validSize);
-                    insertData(coin.getClass().getSimpleName());
+                    insertDataThread(coin.getClass().getSimpleName());
                 } else {
-                    insertData(coin.getClass().getSimpleName());
+                    insertDataThread(coin.getClass().getSimpleName());
                 }
             }
         }
@@ -157,12 +172,12 @@ public class DatabaseUtil {
         String validOpenDate = openTimes.get(coinName);
         long validSize = sizeTextCoins.get(coinName);
 
-        insertData(coinName);
+        insertDataThread(coinName);
 
         for (CustomCandlestick coin : coins) {
             if (!validOpenDate.equals(openTimes.get(coin.getClass().getSimpleName())) || validSize != sizeTextCoins.get(coin.getClass().getSimpleName())) {
                 downloadValidData(coin.getClass().getSimpleName(), validOpenDate, validSize);
-                insertData(coin.getClass().getSimpleName());
+                insertDataThread(coin.getClass().getSimpleName());
             }
         }
     }
@@ -254,7 +269,6 @@ public class DatabaseUtil {
     }
 
     public boolean assertDatesDB() {
-
         resetCheckVariables();
 
         System.out.println("ASSERTING DATES IN DATABASE");
@@ -411,6 +425,23 @@ public class DatabaseUtil {
         }
 
         return false;
+    }
+
+
+    public void insertDataThread(String name) {
+        //Runnable inserting = new Thread(insertData(name));
+        Future<?> future = pool.submit(() -> {
+            try {
+                insertData(name);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            }
+        });
+        futures.add(future);
     }
 
     public void insertData(String symbol) throws FileNotFoundException, IllegalAccessException, InstantiationException {

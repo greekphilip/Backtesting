@@ -2,7 +2,6 @@ package com.example.demo.util;
 
 import com.example.demo.domain.CustomCandlestick;
 import com.example.demo.service.CandlestickService;
-import org.apache.commons.lang3.ObjectUtils;
 import org.reflections.Reflections;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -58,14 +57,14 @@ public class DatabaseUtil {
                 String tableName = coin.getClass().getSimpleName().toLowerCase();
 
                 printer.println("CREATE TABLE IF NOT EXISTS backtesting." + tableName + " (" +
-                        "\topentime int8 NULL," +
-                        "\t\"open\" numeric NULL," +
-                        "\thigh numeric NULL," +
-                        "\tlow numeric NULL," +
-                        "\t\"close\" numeric NULL," +
-                        "\tid serial NOT NULL," +
-                        "\tCONSTRAINT " + tableName + "_pk PRIMARY KEY (id)" +
-                        ");");
+                                        "\topentime int8 NULL," +
+                                        "\t\"open\" numeric NULL," +
+                                        "\thigh numeric NULL," +
+                                        "\tlow numeric NULL," +
+                                        "\t\"close\" numeric NULL," +
+                                        "\tid int4 NOT NULL," +
+                                        "\tCONSTRAINT " + tableName + "_pk PRIMARY KEY (id)" +
+                                        ");");
             }
         } catch (IOException e) {
             System.err.println("Something went worng. Input Output");
@@ -77,8 +76,8 @@ public class DatabaseUtil {
             boolean validChoice = false;
             while (!validChoice) {
                 System.out.println("\n1. exit" +
-                        "\n2. assert texts" +
-                        "\n3. coin name you want to set as valid dates");
+                                           "\n2. assert texts" +
+                                           "\n3. coin name you want to set as valid dates");
 
                 String choice = userInput.nextLine();
 
@@ -89,8 +88,11 @@ public class DatabaseUtil {
                     case "assert texts":
                         if (assertDatesText()) {
                             for (CustomCandlestick coin : coins) {
-                                candlestickService.deleteData(coin.getClass().getSimpleName());
-                                insertData(coin.getClass().getSimpleName());
+                                if (!assertIndividualDB(coin.getClass().getSimpleName())) {
+                                    System.out.println("Resetting " + coin.getClass().getSimpleName());
+                                    candlestickService.deleteData(coin.getClass().getSimpleName());
+                                    insertData(coin.getClass().getSimpleName());
+                                }
                             }
                             validChoice = true;
                         }
@@ -114,12 +116,25 @@ public class DatabaseUtil {
             }
         }
 
-        if(!assertDatesDB()){
+        if (!assertDatesDB()) {
             throw new IllegalArgumentException("Something is wrong with the data! DEBUG");
         }
 
         System.out.println("DATA IS VALID");
         return true;
+    }
+
+    public boolean assertIndividualDB(String coinName) {
+        String validOpenDate = openTimes.get(coinName);
+        long validSize = sizeTextCoins.get(coinName);
+        String actualOpenDate = candlestickService.getOpenDate(coinName) + "";
+        long actualSize = candlestickService.size(coinName);
+
+        if (validSize == actualSize && validOpenDate.equals(actualOpenDate)) {
+            return true;
+        }
+
+        return false;
     }
 
     public void updateDatabase(String coinName) throws FileNotFoundException, InstantiationException, IllegalAccessException {
@@ -164,6 +179,7 @@ public class DatabaseUtil {
             e.printStackTrace();
         }
     }
+
 
     public boolean assertIndividualTextFile(String coinName, String validOpenDate, long validSize) {
         candlestickService.deleteData(coinName);
@@ -224,7 +240,23 @@ public class DatabaseUtil {
         }
     }
 
+    public void resetCheckVariables() {
+        openTimes.clear();
+        openTimesTimes.clear();
+        openTimesDB.clear();
+        openTimesTimesDB.clear();
+
+        sizeDB.clear();
+        sizeDBCoins.clear();
+
+        sizeText.clear();
+        sizeTextCoins.clear();
+    }
+
     public boolean assertDatesDB() {
+
+        resetCheckVariables();
+
         System.out.println("ASSERTING DATES IN DATABASE");
 
 
@@ -371,8 +403,10 @@ public class DatabaseUtil {
         String line;
 
         for (CustomCandlestick candlestick : coins) {
+            int id = 0;
             if (candlestick.getClass().getSimpleName().equals(symbol)) {
                 while (input.hasNext()) {
+                    id++;
                     line = input.nextLine();
                     String[] array = line.split(",");
 
@@ -388,7 +422,7 @@ public class DatabaseUtil {
                     candlestick.setLow(Double.parseDouble(low));
                     candlestick.setClose(Double.parseDouble(close));
 
-                    candlestick.setId(null);
+                    candlestick.setId(id);
 
                     candlestickService.save(candlestick);
                 }

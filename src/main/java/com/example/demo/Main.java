@@ -6,8 +6,10 @@ import com.example.demo.exception.InvalidDataException;
 import com.example.demo.repository.CandlestickJPARepository;
 import com.example.demo.service.CandlestickService;
 import com.example.demo.simulation.OneMinuteSimulation;
+import com.example.demo.util.DataDownloader;
 import com.example.demo.util.DatabaseUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -23,6 +25,11 @@ public class Main {
     @Autowired
     OneMinuteSimulation simulator;
 
+//    @Autowired
+//    DataDownloader dataDownloader;
+
+
+
     @PostConstruct
     public void init() throws Exception {
 
@@ -35,6 +42,7 @@ public class Main {
         System.out.println("Timeline was split "+simulator.getSplitCounter()+" times");
         System.out.println("Final Balance is "+simulator.getBalance()+"$");
 
+       // dataDownloader.testGetData();
     }
 
 

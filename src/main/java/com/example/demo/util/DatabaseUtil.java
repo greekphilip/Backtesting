@@ -34,7 +34,8 @@ public class DatabaseUtil {
     private ExecutorService pool = Executors.newFixedThreadPool(20);
     private List<Future<?>> futures = new ArrayList<Future<?>>();
 
-    private DataDownloader dataDownloader = new DataDownloader();
+    @Autowired
+    private DataDownloader dataDownloader;
 
     private final String SQL_SCRIPT = "sqlScript.sql";
 
@@ -52,7 +53,7 @@ public class DatabaseUtil {
     }
 
 
-    public boolean assertData() throws InstantiationException, IllegalAccessException, FileNotFoundException, ExecutionException, InterruptedException {
+    public boolean assertData() throws InstantiationException, IllegalAccessException, IOException, ExecutionException, InterruptedException {
 
         initCoins();
 
@@ -64,14 +65,14 @@ public class DatabaseUtil {
                 String tableName = coin.getClass().getSimpleName().toLowerCase();
 
                 printer.println("CREATE TABLE IF NOT EXISTS backtesting." + tableName + " (" +
-                                        "\topentime int8 NULL," +
-                                        "\t\"open\" numeric NULL," +
-                                        "\thigh numeric NULL," +
-                                        "\tlow numeric NULL," +
-                                        "\t\"close\" numeric NULL," +
-                                        "\tid int4 NOT NULL," +
-                                        "\tCONSTRAINT " + tableName + "_pk PRIMARY KEY (id)" +
-                                        ");");
+                        "\topentime int8 NULL," +
+                        "\t\"open\" numeric NULL," +
+                        "\thigh numeric NULL," +
+                        "\tlow numeric NULL," +
+                        "\t\"close\" numeric NULL," +
+                        "\tid int4 NOT NULL," +
+                        "\tCONSTRAINT " + tableName + "_pk PRIMARY KEY (id)" +
+                        ");");
             }
         } catch (IOException e) {
             System.err.println("Something went worng. Input Output");
@@ -83,8 +84,8 @@ public class DatabaseUtil {
             boolean validChoice = false;
             while (!validChoice) {
                 System.out.println("\n1. exit" +
-                                           "\n2. assert texts" +
-                                           "\n3. coin name you want to set as valid dates");
+                        "\n2. assert texts" +
+                        "\n3. coin name you want to set as valid dates");
 
                 String choice = userInput.nextLine();
 
@@ -130,10 +131,11 @@ public class DatabaseUtil {
         pool.shutdown();
 
         if (!assertDatesDB()) {
+            dataDownloader.closeMemCache();
             return false;
         }
 
-//        System.out.println("DATA IS VALID");s
+        dataDownloader.closeMemCache();
         return true;
     }
 

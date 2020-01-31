@@ -6,6 +6,7 @@ import com.example.demo.service.CandlestickService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Date;
 import java.util.Map;
 
 import static com.example.demo.Values.*;
@@ -30,8 +31,14 @@ public class OneMinuteSimulation {
     }
 
     public void startSimulation() {
-
+        System.out.println("\n\n-------------------------\n\n");
         System.out.println("STARTING SIMULATION");
+        System.out.println("\n\n-------------------------\n\n");
+
+        System.out.println("\n\n-------------------------\n\n");
+        System.out.println("FROM |"+new Date(candlestickService.getOpenDate(coins.get(0).getClass().getSimpleName())));
+        System.out.println("TO |"+new Date(candlestickService.getCloseDate(coins.get(0).getClass().getSimpleName())));
+        System.out.println("\n\n-------------------------\n\n");
 
         int firstCandleId = 1;
         int lastCandleId = candlestickService.getLastMinute(coins.get(0).getClass().getSimpleName());
@@ -46,7 +53,7 @@ public class OneMinuteSimulation {
         double oneDayHigh;
         double twoDayHigh;
 
-        for (int i = firstCandleId+TWO_DAYS; i < lastCandleId; i++) {
+        for (int i = firstCandleId + TWO_DAYS; i < lastCandleId; i++) {
             for (CustomCandlestick coin : coins) {
                 String name = coin.getClass().getSimpleName();
                 currentCandle = candlestickService.getById(i, name);
@@ -62,9 +69,11 @@ public class OneMinuteSimulation {
                         twoDayHigh = candlestickService.get48hHigh(i, name);
                         if (oneDayHigh > twoDayHigh) {
                             double previousBalance = balance;
+                            System.out.println("\n-------------------------");
+                            System.out.println("BOUGHT " + name + " |" + new Date(currentCandle.getOpenTime()).toString());
                             i = buyCoin(i, lastCandleId, oneDayHigh, name);
-                            System.out.println("SOLD "+coin.getClass().getSimpleName());
-                            System.out.println("Previous Balance:"+previousBalance+"|Current Balance:"+balance);
+                            System.out.println("Previous Balance:" + previousBalance + "|Current Balance:" + balance);
+                            System.out.println("-------------------------\n");
                         }
                     }
                 }
@@ -73,8 +82,8 @@ public class OneMinuteSimulation {
     }
 
     public int buyCoin(int index, int lastMinute, double priceBought, String name) {
-        System.out.println("BOUGHT "+name);
-        CustomCandlestick currentCandle;
+
+        CustomCandlestick currentCandle = null;
         boolean profit = false;
         boolean stopLoss = false;
         double stopLossTriger = priceBought - priceBought * 0.01;
@@ -107,12 +116,14 @@ public class OneMinuteSimulation {
                     percentageChange = (stopLossTriger - priceBought) / priceBought;
 
                     balance = balance + (balance * percentageChange);
+                    System.out.println("SOLD " + name + " | " + new Date(currentCandle.getOpenTime()));
                     return i;
                 } else {
                     // STOP LOSS
                     double percentageChange = (stopLossTriger - priceBought) / priceBought;
 
                     balance = balance + (balance * percentageChange);
+                    System.out.println("SOLD " + name + " | " + new Date(currentCandle.getOpenTime()));
                     return i;
                 }
             } else if (profit) {
@@ -127,6 +138,7 @@ public class OneMinuteSimulation {
                     percentageChange = (stopLossTriger - priceBought) / priceBought;
 
                     balance = balance + (balance * percentageChange);
+                    System.out.println("SOLD " + name + " | " + new Date(currentCandle.getOpenTime()));
                     return i;
                 }
 
@@ -137,9 +149,11 @@ public class OneMinuteSimulation {
                 double percentageChange = (stopLossTriger - priceBought) / priceBought;
 
                 balance = balance + (balance * percentageChange);
+                System.out.println("SOLD " + name + " | " + new Date(currentCandle.getOpenTime()));
                 return i;
             }
         }
+
         return lastMinute;
     }
 

@@ -12,7 +12,6 @@ import java.util.Date;
 import java.util.List;
 
 
-
 public class DataDownloader {
 
     private BinanceApiClientFactory factory;
@@ -31,6 +30,9 @@ public class DataDownloader {
      * @throws ParseException
      */
     public void getData(String fileName, long previousStartTime, long endTime) throws ParseException {
+
+        System.out.println("DOWNLOADING DATA FOR " + fileName.toUpperCase());
+
         SimpleDateFormat sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
         String symbol = fileName.toUpperCase() + "BTC";
 //        Date date1 = sdf.parse(dateInString1);
@@ -43,9 +45,13 @@ public class DataDownloader {
         long iterations = (endTime - previousStartTime) / plus500Minutes + 1;
 
 
-        try (FileWriter fw = new FileWriter("Historical/" + fileName + "history.txt", true);
+        try (FileWriter fw = new FileWriter("Historical/" + fileName + "history.txt", false);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter printer = new PrintWriter(bw)) {
+
+            long timeBegin = System.currentTimeMillis();
+            long timeNow;
+
             int counter = 0;
             for (int i = 0; i < iterations; i++) {
                 if (previousStartTime < endTime) {
@@ -55,9 +61,13 @@ public class DataDownloader {
                         printer.println(candles.get(j));
                     }
                     counter++;
-                    if (counter > 235) {
-                        Thread.sleep(60000);
-                        counter = 0;
+                    timeNow = System.currentTimeMillis();
+                    if (timeNow - timeBegin < 60_000) {
+                        if (counter > 235) {
+                            Thread.sleep(60000);
+                            timeBegin = System.currentTimeMillis();
+                            counter = 0;
+                        }
                     }
                 } else {
                     break;

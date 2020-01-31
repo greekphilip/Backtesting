@@ -130,12 +130,10 @@ public class DatabaseUtil {
         pool.shutdown();
 
         if (!assertDatesDB()) {
-            throw new IllegalArgumentException("Something is wrong with the data! DEBUG");
+            return false;
         }
 
-
-
-        System.out.println("DATA IS VALID");
+//        System.out.println("DATA IS VALID");s
         return true;
     }
 

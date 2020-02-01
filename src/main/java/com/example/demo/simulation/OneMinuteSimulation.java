@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
+import static com.example.demo.Main.*;
 import static com.example.demo.Values.*;
 
 @Component
@@ -15,7 +16,7 @@ public class OneMinuteSimulation {
     @Autowired
     CandlestickService candlestickService;
 
-    public static final boolean OPTIMISTIC = true;
+
     private double balance = 100;
     private int splitCounter = 0;
 
@@ -84,9 +85,9 @@ public class OneMinuteSimulation {
         CustomCandlestick currentCandle;
         boolean profit = false;
         boolean stopLoss = false;
-        double stopLossTriger = priceBought - priceBought * 0.01;
-        double deviance = 0.01;
-        double previousHigh = priceBought * 0.01 + priceBought;
+        double stopLossTriger = priceBought - priceBought * STOP_LOSS;
+        double deviance = DEVIANCE;
+        double previousHigh = priceBought * PROFIT + priceBought;
 
         for (int i = index; i < lastMinute; i++) {
 

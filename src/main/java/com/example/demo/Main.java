@@ -8,8 +8,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 
-import static com.example.demo.simulation.OneMinuteSimulation.OPTIMISTIC;
-
 @Component
 public class Main {
 
@@ -19,10 +17,10 @@ public class Main {
     @Autowired
     OneMinuteSimulation simulator;
 
-//    @Autowired
-//    DataDownloader dataDownloader;
-
-
+    public static final double PROFIT = 0.005;
+    public static final double STOP_LOSS = 0.02;
+    public static final double DEVIANCE = 0.005;
+    public static final boolean OPTIMISTIC = true;
 
     @PostConstruct
     public void init() throws Exception {

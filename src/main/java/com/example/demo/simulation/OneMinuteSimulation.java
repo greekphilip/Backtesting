@@ -1,13 +1,11 @@
 package com.example.demo.simulation;
 
-import com.binance.api.client.domain.market.Candlestick;
 import com.example.demo.domain.CustomCandlestick;
 import com.example.demo.service.CandlestickService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
-import java.util.Map;
 
 import static com.example.demo.Values.*;
 
@@ -17,7 +15,7 @@ public class OneMinuteSimulation {
     @Autowired
     CandlestickService candlestickService;
 
-    private final boolean OPTIMISTIC = false;
+    public static final boolean OPTIMISTIC = true;
     private double balance = 100;
     private int splitCounter = 0;
 
@@ -83,7 +81,7 @@ public class OneMinuteSimulation {
 
     public int buyCoin(int index, int lastMinute, double priceBought, String name) {
 
-        CustomCandlestick currentCandle = null;
+        CustomCandlestick currentCandle;
         boolean profit = false;
         boolean stopLoss = false;
         double stopLossTriger = priceBought - priceBought * 0.01;

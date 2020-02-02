@@ -4,12 +4,14 @@ import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiRestClient;
 import com.binance.api.client.domain.market.Candlestick;
 import com.binance.api.client.domain.market.CandlestickInterval;
-import com.example.demo.exception.RateLimitExceededException;
 import net.spy.memcached.MemcachedClient;
 import org.apache.commons.lang3.SystemUtils;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -51,6 +53,7 @@ public class DataDownloader {
         if (SystemUtils.IS_OS_LINUX) {
             throw new IllegalAccessException("NO MEMCACHED FOR LINUX CONFIGURED");
         } else if (SystemUtils.IS_OS_WINDOWS) {
+            System.out.println("STARTED MEMCACHED");
             ProcessBuilder builder = new ProcessBuilder(commandsWindows);
             Process p = builder.start();
         } else {
@@ -59,6 +62,7 @@ public class DataDownloader {
 
 
         memcacheClient = new MemcachedClient(new InetSocketAddress("localhost", 11211));
+
     }
 
     public void closeMemCache() throws IOException, IllegalAccessException {
@@ -108,19 +112,6 @@ public class DataDownloader {
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter printer = new PrintWriter(bw)) {
             for (int i = 0; i < iterations; i++) {
-
-
-//                long now = System.currentTimeMillis();
-//
-//                if (now - start > 60000) {
-//                    start = now;
-//                    counter = 0;
-//                } else {
-//                    if (counter > 1000) {
-//                        memcacheClient.shutdown();
-//                        throw new RateLimitExceededException("Rate Limit Exceeded");
-//                    }
-//                }
 
                 previousPreviousStartTime = previousStartTime;
                 previousStartTime = download(previousStartTime, endTime, symbol, printer);

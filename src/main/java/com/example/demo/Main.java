@@ -2,6 +2,8 @@ package com.example.demo;
 
 import com.example.demo.exception.InvalidDataException;
 import com.example.demo.strategy.OptimumMomentumStrategy;
+import com.example.demo.strategy.SingleMomentumStrategy;
+import com.example.demo.util.DataDownloader;
 import com.example.demo.util.DatabaseUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -45,8 +47,20 @@ public class Main {
     @Autowired
     private ApplicationContext applicationContext;
 
+    @Autowired
+    SingleMomentumStrategy singleMomentumStrategy;
+
+    @Autowired
+    DataDownloader dataDownloader;
+
     @PostConstruct
+
     public void init() throws Exception {
+
+//        long begin = 1577980800;
+//        long end = 1580659200;
+//        dataDownloader.getData("Nano", begin, end);
+
 
         long start = System.currentTimeMillis();
 
@@ -54,8 +68,8 @@ public class Main {
             throw new InvalidDataException("Database data is not valid.");
         }
 
+        singleMomentumStrategy.startSimulation(0, 0.015, 0.036, 0.015, 100);
 
-        //findOptimumParameters();
         executorService.shutdown();
     }
 

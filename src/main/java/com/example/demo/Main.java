@@ -1,24 +1,15 @@
 package com.example.demo;
 
 import com.example.demo.exception.InvalidDataException;
-import com.example.demo.strategy.MomentumStrategy;
+import com.example.demo.strategy.OptimumMomentumStrategy;
 import com.example.demo.util.DatabaseUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
-import static com.example.demo.Main.start;
 
 @Component
 public class Main {
@@ -31,36 +22,23 @@ public class Main {
     private double profit;
     private double stopLoss;
     private double deviance;
-    public static final boolean OPTIMISTIC = true;
 
-//    private final double MIN_PERCENTAGE = 0;
-//    private final double MAX_PERCENTAGE = 10;
-//
-//    private final double MIN_PROFIT = 0.002;
-//    private final double MAX_PROFIT = 0.05;
-//
-//    private final double MIN_STOP_LOSS = 0.002;
-//    private final double MAX_STOP_LOSS = 0.05;
-//
-//    private final double MIN_DEVIANCE = 0.001;
+    private final double MIN_PERCENTAGE = 0;
+    private final double MAX_PERCENTAGE = 10;
+
+    private final double MIN_PROFIT = 0.002;
+    private final double MAX_PROFIT = 0.05;
+
+    private final double MIN_STOP_LOSS = 0.002;
+    private final double MAX_STOP_LOSS = 0.05;
+
+    private final double MIN_DEVIANCE = 0.001;
 
 
     private static final double initialBalance = 100;
     public final static Integer lock = 1;
-    private final double MIN_PERCENTAGE = 1;
-    private final double MAX_PERCENTAGE = 5;
 
-    private final double MIN_PROFIT = 0.001;
-    private final double MAX_PROFIT = 0.04;
-
-    private final double MIN_STOP_LOSS = 0.01;
-    private final double MAX_STOP_LOSS = 0.02;
-
-    private final double MIN_DEVIANCE = 0.01;
-
-    private List<Future<?>> futures = new ArrayList<>();
-
-    private ExecutorService executorService = Executors.newFixedThreadPool(500);
+    private ExecutorService executorService = Executors.newFixedThreadPool(200);
 
     public static long start = System.currentTimeMillis();
 
@@ -77,42 +55,44 @@ public class Main {
         }
 
 
-//        for (percentage = MIN_PERCENTAGE; percentage < MAX_PERCENTAGE; percentage++) {
-//            for (profit = MIN_PROFIT; profit < MAX_PROFIT; profit = profit + 0.001) {
-//                for (stopLoss = MIN_STOP_LOSS; stopLoss < MAX_STOP_LOSS; stopLoss = stopLoss + 0.005) {
-//                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.005) {
-//                        futures.add(executorService.submit(() -> {
-//                            startSimulation(percentage, profit, stopLoss, deviance);
-//                        }));
-//                    }
-//                }
-//            }
-//        }
-
-        Future<?> future = executorService.submit(() -> {
-            startSimulation(percentage, profit, stopLoss, deviance);
-        });
-
-        futures.add(future);
-
-        for (Future futureIn : futures) {
-            futureIn.get();
-        }
-
+        //findOptimumParameters();
         executorService.shutdown();
-
-        long elapsedTime = System.currentTimeMillis() - start;
-        Date date = new Date(elapsedTime);
-        DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
-        formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
-        String dateFormatted = formatter.format(date);
-        System.out.println("TIME ELAPSED: " + dateFormatted);
-
     }
 
 
     private void startSimulation(double percentage, double profit, double stopLoss, double deviance) {
-        applicationContext.getBean(MomentumStrategy.class).startSimulation(percentage, profit, stopLoss, deviance, initialBalance);
+        executorService.submit(() -> {
+            applicationContext.getBean(OptimumMomentumStrategy.class).startSimulation(percentage, profit, stopLoss, deviance, initialBalance);
+        });
+    }
+
+    private void findOptimumParameters() {
+        int counter = 0;
+
+
+        for (percentage = MIN_PERCENTAGE; percentage <= MAX_PERCENTAGE; percentage = percentage + 1) {
+            for (profit = MIN_PROFIT; profit <= MAX_PROFIT; profit = profit + 0.001) {
+                for (stopLoss = MIN_STOP_LOSS; stopLoss <= MAX_STOP_LOSS; stopLoss = stopLoss + 0.001) {
+                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.001) {
+                        counter++;
+                    }
+                }
+            }
+        }
+
+        System.out.println("-------------------------------------");
+        System.out.println("Number of simulations:" + counter);
+        System.out.println("-------------------------------------");
+
+        for (percentage = MIN_PERCENTAGE; percentage <= MAX_PERCENTAGE; percentage = percentage + 1) {
+            for (profit = MIN_PROFIT; profit <= MAX_PROFIT; profit = profit + 0.001) {
+                for (stopLoss = MIN_STOP_LOSS; stopLoss <= MAX_STOP_LOSS; stopLoss = stopLoss + 0.001) {
+                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.001) {
+                        startSimulation(percentage, profit, stopLoss, deviance);
+                    }
+                }
+            }
+        }
     }
 
 

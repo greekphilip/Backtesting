@@ -5,7 +5,7 @@ import lombok.Data;
 import javax.persistence.*;
 
 @Data
-@Entity(name = "StrategyRun")
+@Entity
 public class StrategyRun {
 
     @Id

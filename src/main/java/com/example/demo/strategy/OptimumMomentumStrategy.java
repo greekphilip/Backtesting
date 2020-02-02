@@ -18,12 +18,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static com.example.demo.Main.*;
+import static com.example.demo.Main.lock;
+import static com.example.demo.Main.start;
 import static com.example.demo.Values.*;
 
 @Component
 @Scope("prototype")
-public class MomentumStrategy {
+public class OptimumMomentumStrategy {
 
     @Autowired
     CandlestickService candlestickService;
@@ -34,7 +35,6 @@ public class MomentumStrategy {
     private double balanceOpt;
     private double balancePes;
     private int splitCounter;
-    private Object internalLock;
 //    private long simOpenTime;
 //    private long simCloseTime;
 
@@ -47,47 +47,45 @@ public class MomentumStrategy {
     @Getter
     private boolean available = true;
 
-    public void startSimulation(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, double initialBalance)  {
-//        Future<?> futureOptimistic = executorService.submit(() -> {
-//            startThread(percentageTrigger, profitTrigger, stopLossTrigger, deviance, true, initialBalance);
-//        });
-//
-//        Future<?> futurePessimistic = executorService.submit(() -> {
-//            startThread(percentageTrigger, profitTrigger, stopLossTrigger, deviance, false, initialBalance);
-//        });
-//
-//        futureOptimistic.get();
-//        futurePessimistic.get();
-//
-//        StrategyRun strategyRun = new StrategyRun();
-//        strategyRun.setPercentageTrigger(percentageTrigger);
-//        strategyRun.setProfitTrigger(profitTrigger);
-//        strategyRun.setStopLossTrigger(stopLossTrigger);
-//        strategyRun.setDeviance(deviance);
-//
-//        changeOptimistic = ((balanceOpt - initialBalance) * 100) / initialBalance;
-//        changePessimistic = ((balancePes - initialBalance) * 100) / initialBalance;
-//        strategyRun.setChangeOptimistic(changeOptimistic);
-//        strategyRun.setChangePessimistic(changePessimistic);
-//
-//        strategyRun.setId(null);
-//
-//        strategyRunService.save(strategyRun);
+    public void startSimulation(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, double initialBalance) {
+        Future<?> futureOptimistic = executorService.submit(() -> {
+            startThread(percentageTrigger, profitTrigger, stopLossTrigger, deviance, true, initialBalance);
+        });
 
-        System.out.println("LOLOLOLO");
+        Future<?> futurePessimistic = executorService.submit(() -> {
+            startThread(percentageTrigger, profitTrigger, stopLossTrigger, deviance, false, initialBalance);
+        });
+
+        try {
+            futureOptimistic.get();
+            futurePessimistic.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
+
+        StrategyRun strategyRun = new StrategyRun();
+        strategyRun.setPercentageTrigger(percentageTrigger);
+        strategyRun.setProfitTrigger(profitTrigger);
+        strategyRun.setStopLossTrigger(stopLossTrigger);
+        strategyRun.setDeviance(deviance);
+        strategyRun.setSplitTimes(splitCounter);
+
+        changeOptimistic = ((balanceOpt - initialBalance) * 100) / initialBalance;
+        changePessimistic = ((balancePes - initialBalance) * 100) / initialBalance;
+        strategyRun.setChangeOptimistic(changeOptimistic);
+        strategyRun.setChangePessimistic(changePessimistic);
+
+        strategyRun.setId(null);
+
+        strategyRunService.save(strategyRun);
+        executorService.shutdown();
     }
 
 
-    public void startThread(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, boolean optimistic, double balance) {
-//        System.out.println("\n\n-------------------------\n\n");
-//        System.out.println("STARTING SIMULATION");
-//        System.out.println("\n\n-------------------------\n\n");
-//
-//        System.out.println("\n\n-------------------------\n\n");
-//        System.out.println("FROM |" + new Date(candlestickService.getOpenDate(coins.get(0).getClass().getSimpleName())));
-//        System.out.println("TO |" + new Date(candlestickService.getCloseDate(coins.get(0).getClass().getSimpleName())));
-//        System.out.println("\n\n-------------------------\n\n");
-
+    public boolean startThread(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, boolean optimistic, double balance) {
 
         balanceOpt = balance;
         balancePes = balance;
@@ -135,17 +133,25 @@ public class MomentumStrategy {
         }
 
         printResults(optimistic);
+        return true;
     }
 
     private void printResults(boolean optimistic) {
         synchronized (lock) {
             System.out.println("\n\n---------------------------------");
             System.out.println("Timeline was split " + splitCounter + " times | Optimistic:" + optimistic);
-            if(optimistic){
+            if (optimistic) {
                 System.out.println("Final Balance is " + balanceOpt + "$");
-            }else{
+            } else {
                 System.out.println("Final Balance is " + balancePes + "$");
             }
+
+            long elapsedTime = System.currentTimeMillis() - start;
+            Date date = new Date(elapsedTime);
+            DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
+            formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+            String dateFormatted = formatter.format(date);
+            System.out.println("TIME ELAPSED: " + dateFormatted);
         }
     }
 

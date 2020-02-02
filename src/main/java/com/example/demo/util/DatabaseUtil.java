@@ -1,6 +1,6 @@
 package com.example.demo.util;
 
-import com.example.demo.domain.CustomCandlestick;
+import com.example.demo.domain.candlestick.CustomCandlestick;
 import com.example.demo.service.CandlestickService;
 import org.reflections.Reflections;
 import org.springframework.beans.factory.annotation.Autowired;

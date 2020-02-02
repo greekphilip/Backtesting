@@ -1,6 +1,6 @@
 package com.example.demo;
 
-import com.example.demo.domain.CustomCandlestick;
+import com.example.demo.domain.candlestick.CustomCandlestick;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -8,11 +8,17 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import static com.example.demo.Main.start;
 
 @Component
 public class Main {
@@ -39,6 +45,7 @@ public class Main {
 //    private final double MIN_DEVIANCE = 0.001;
 
 
+    private static final double initialBalance = 100;
     public final static Integer lock = 1;
     private final double MIN_PERCENTAGE = 1;
     private final double MAX_PERCENTAGE = 5;
@@ -70,30 +77,42 @@ public class Main {
         }
 
 
-        for (percentage = MIN_PERCENTAGE; percentage < MAX_PERCENTAGE; percentage++) {
-            for (profit = MIN_PROFIT; profit < MAX_PROFIT; profit = profit + 0.001) {
-                for (stopLoss = MIN_STOP_LOSS; stopLoss < MAX_STOP_LOSS; stopLoss = stopLoss + 0.005) {
-                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.005) {
-                        futures.add(executorService.submit(() -> {
-                            startSimulation(percentage, profit, stopLoss, deviance);
-                        }));
-                    }
-                }
-            }
-        }
-
-//        for (Future future : futures) {
-//            future.get();
+//        for (percentage = MIN_PERCENTAGE; percentage < MAX_PERCENTAGE; percentage++) {
+//            for (profit = MIN_PROFIT; profit < MAX_PROFIT; profit = profit + 0.001) {
+//                for (stopLoss = MIN_STOP_LOSS; stopLoss < MAX_STOP_LOSS; stopLoss = stopLoss + 0.005) {
+//                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.005) {
+//                        futures.add(executorService.submit(() -> {
+//                            startSimulation(percentage, profit, stopLoss, deviance);
+//                        }));
+//                    }
+//                }
+//            }
 //        }
+
+        Future<?> future = executorService.submit(() -> {
+            startSimulation(percentage, profit, stopLoss, deviance);
+        });
+
+        futures.add(future);
+
+        for (Future futureIn : futures) {
+            futureIn.get();
+        }
 
         executorService.shutdown();
 
+        long elapsedTime = System.currentTimeMillis() - start;
+        Date date = new Date(elapsedTime);
+        DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
+        formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+        String dateFormatted = formatter.format(date);
+        System.out.println("TIME ELAPSED: " + dateFormatted);
 
     }
 
 
     private void startSimulation(double percentage, double profit, double stopLoss, double deviance) {
-        applicationContext.getBean(MomentumStrategy.class).startSimulation(percentage, profit, stopLoss, deviance);
+        applicationContext.getBean(MomentumStrategy.class).startSimulation(percentage, profit, stopLoss, deviance, initialBalance);
     }
 
 

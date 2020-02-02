@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.example.demo.domain.CustomCandlestick;
+import com.example.demo.domain.candlestick.CustomCandlestick;
 import com.example.demo.repository.CandlestickJPARepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;

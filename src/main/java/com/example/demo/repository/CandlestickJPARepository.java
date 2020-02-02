@@ -1,7 +1,7 @@
 package com.example.demo.repository;
 
 
-import com.example.demo.domain.CustomCandlestick;
+import com.example.demo.domain.candlestick.CustomCandlestick;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;

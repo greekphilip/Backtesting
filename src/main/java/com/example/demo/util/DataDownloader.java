@@ -15,6 +15,7 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 
@@ -29,12 +30,10 @@ public class DataDownloader {
     private MemcachedClient memcacheClient;
     private String handle = "HANDLE";
     private int limit = 1000;
-    private int counter = 0;
 
     public DataDownloader() throws ParseException, IOException, IllegalAccessException {
         factory = BinanceApiClientFactory.newInstance();
         client = factory.newRestClient();
-        startMemCacheServer();
     }
 
     private void startMemCacheServer() throws IOException, IllegalAccessException {
@@ -46,12 +45,9 @@ public class DataDownloader {
                 "memcached.exe -d start"
         };
 
-        String[] commandsLinux = {
-                ""
-        };
 
         if (SystemUtils.IS_OS_LINUX) {
-            throw new IllegalAccessException("NO MEMCACHED FOR LINUX CONFIGURED");
+            // Start memcached docker image
         } else if (SystemUtils.IS_OS_WINDOWS) {
             System.out.println("STARTED MEMCACHED");
             ProcessBuilder builder = new ProcessBuilder(commandsWindows);
@@ -62,6 +58,7 @@ public class DataDownloader {
 
 
         memcacheClient = new MemcachedClient(new InetSocketAddress("localhost", 11211));
+        System.out.println("test");
 
     }
 
@@ -79,7 +76,7 @@ public class DataDownloader {
         };
 
         if (SystemUtils.IS_OS_LINUX) {
-            throw new IllegalAccessException("NO MEMCACHED FOR LINUX CONFIGURED");
+            // install memcache
         } else if (SystemUtils.IS_OS_WINDOWS) {
             ProcessBuilder builder = new ProcessBuilder(commandsWindows);
             Process p = builder.start();
@@ -95,11 +92,11 @@ public class DataDownloader {
      * @param //dateInString2 Format =  (10-08-2019 13:00:00)
      * @throws ParseException
      */
-    public void getData(String fileName, long previousStartTime, long endTime) throws ParseException {
-
+    public void getData(String fileName, long previousStartTime, long endTime) throws IOException, IllegalAccessException {
+        startMemCacheServer();
         System.out.println("DOWNLOADING DATA FOR " + fileName.toUpperCase());
 
-        SimpleDateFormat sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
+
         String symbol = fileName.toUpperCase() + "BTC";
 
         long iterations = (endTime - previousStartTime) / plus500Minutes + 1;
@@ -123,6 +120,7 @@ public class DataDownloader {
                     break;
                 }
             }
+            memcacheClient.shutdown();
         } catch (IOException e) {
             System.err.println("Something went wrong. Input Output");
         }
@@ -135,7 +133,6 @@ public class DataDownloader {
             Object fetchedObject = memcacheClient.get(handle);
             //FIRST TIME
             if (fetchedObject == null) {
-                counter++;
                 memcacheClient.set(handle, 60, String.valueOf(limit - 1));
                 List<Candlestick> candles = client.getCandlestickBars(symbol, CandlestickInterval.ONE_MINUTE, 500, previousStartTime, endTime);
                 previousStartTime = previousStartTime + plus500Minutes;
@@ -150,7 +147,6 @@ public class DataDownloader {
                 return previousStartTime;
             }
             //CONTINUE DOWNLOADING
-            counter++;
             memcacheClient.decr(handle, 1);
             List<Candlestick> candles = client.getCandlestickBars(symbol, CandlestickInterval.ONE_MINUTE, 500, previousStartTime, endTime);
             previousStartTime = previousStartTime + plus500Minutes;
@@ -161,5 +157,4 @@ public class DataDownloader {
         }
         return (long) -1;
     }
-
 }

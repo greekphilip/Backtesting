@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import java.util.Date;
 
 @Repository
 public class CandlestickJPARepository {
@@ -23,14 +24,32 @@ public class CandlestickJPARepository {
         return result == null ? 0 : result;
     }
 
-    public int findFirstMinute(String table) {
-        Query jpqlQuery = em.createQuery("Select min(id) from " + table);
+    public int findFirstMinute(Date date, String table) {
+        long openTime = date.getTime();
+        Query jpqlQuery = em.createQuery("Select id from " + table + " where opentime=:opentime");
+        jpqlQuery.setParameter("opentime", openTime);
         Integer result = (Integer) jpqlQuery.getSingleResult();
         return result == null ? 0 : result;
     }
 
-    public int findLastMinute(String table) {
-        Query jpqlQuery = em.createQuery("Select max(id) from " + table);
+    public int findLastMinute(Date date, String table) {
+        long openTime = date.getTime();
+        Query jpqlQuery = em.createQuery("Select id from " + table + " where opentime=:opentime");
+        jpqlQuery.setParameter("opentime", openTime);
+        Integer result = (Integer) jpqlQuery.getSingleResult();
+        return result == null ? 0 : result;
+    }
+
+    public int findFirstMinute(long openTime, String table) {
+        Query jpqlQuery = em.createQuery("Select id from " + table + " where opentime=:opentime");
+        jpqlQuery.setParameter("opentime", openTime);
+        Integer result = (Integer) jpqlQuery.getSingleResult();
+        return result == null ? 0 : result;
+    }
+
+    public int findLastMinute(long openTime, String table) {
+        Query jpqlQuery = em.createQuery("Select id from " + table + " where opentime=:opentime");
+        jpqlQuery.setParameter("opentime", openTime);
         Integer result = (Integer) jpqlQuery.getSingleResult();
         return result == null ? 0 : result;
     }

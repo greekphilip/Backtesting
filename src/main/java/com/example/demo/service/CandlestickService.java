@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 
+import java.util.Date;
+
 import static com.example.demo.Values.*;
 
 @Service
@@ -38,7 +40,6 @@ public class CandlestickService {
         return repository.findById(id, table);
     }
 
-    @CachePut("save")
     @Transactional
     public void save(CustomCandlestick candlestick) {
         repository.save(candlestick);
@@ -62,13 +63,24 @@ public class CandlestickService {
         throw new IllegalArgumentException("Something is wrong");
     }
 
-    public int getFirstMinute(String table) {
-        return repository.findFirstMinute(table);
+    @Cacheable(value = "firstMinuteDate", key = "#date")
+    public int getFirstMinute(Date date, String table) {
+        return repository.findFirstMinute(date, table);
     }
 
-    @Cacheable("lastMinute")
-    public int getLastMinute(String table) {
-        return repository.findLastMinute(table);
+    @Cacheable(value = "lastMinuteDate", key = "#date")
+    public int getLastMinute(Date date, String table) {
+        return repository.findLastMinute(date, table);
+    }
+
+    @Cacheable(value = "firstMinuteLong", key = "#openTime")
+    public int getFirstMinute(long openTime, String table) {
+        return repository.findFirstMinute(openTime, table);
+    }
+
+    @Cacheable(value = "lastMinuteLong", key = "#openTime")
+    public int getLastMinute(long openTime, String table) {
+        return repository.findLastMinute(openTime, table);
     }
 
     @Transactional

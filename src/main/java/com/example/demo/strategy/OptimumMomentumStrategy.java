@@ -38,62 +38,21 @@ public class OptimumMomentumStrategy {
 //    private long simOpenTime;
 //    private long simCloseTime;
 
-
-    private ExecutorService executorService = Executors.newFixedThreadPool(2);
-
     private double changeOptimistic;
     private double changePessimistic;
 
     @Getter
     private boolean available = true;
 
-    public void startSimulation(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, double initialBalance) {
-        Future<?> futureOptimistic = executorService.submit(() -> {
-            startThread(percentageTrigger, profitTrigger, stopLossTrigger, deviance, true, initialBalance);
-        });
 
-        Future<?> futurePessimistic = executorService.submit(() -> {
-            startThread(percentageTrigger, profitTrigger, stopLossTrigger, deviance, false, initialBalance);
-        });
+    public boolean startSimulation(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, double initialBalance, long firstOpen, long lastOpen) {
 
-        try {
-            futureOptimistic.get();
-            futurePessimistic.get();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
-
-
-        StrategyRun strategyRun = new StrategyRun();
-        strategyRun.setPercentageTrigger(percentageTrigger);
-        strategyRun.setProfitTrigger(profitTrigger);
-        strategyRun.setStopLossTrigger(stopLossTrigger);
-        strategyRun.setDeviance(deviance);
-        strategyRun.setSplitTimes(splitCounter);
-
-        changeOptimistic = ((balanceOpt - initialBalance) * 100) / initialBalance;
-        changePessimistic = ((balancePes - initialBalance) * 100) / initialBalance;
-        strategyRun.setChangeOptimistic(changeOptimistic);
-        strategyRun.setChangePessimistic(changePessimistic);
-
-        strategyRun.setId(null);
-
-        strategyRunService.save(strategyRun);
-        executorService.shutdown();
-    }
-
-
-    public boolean startThread(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, boolean optimistic, double balance) {
-
-        balanceOpt = balance;
-        balancePes = balance;
+        balanceOpt = initialBalance;
+        balancePes = initialBalance;
         splitCounter = 0;
 
-
-        int firstCandleId = 1;
-        int lastCandleId = candlestickService.getLastMinute(coins.get(0).getClass().getSimpleName());
+        int firstCandleId = candlestickService.getFirstMinute(firstOpen, coins.get(0).getClass().getSimpleName());
+        int lastCandleId = candlestickService.getLastMinute(lastOpen, coins.get(0).getClass().getSimpleName());
 
         CustomCandlestick currentCandle;
 
@@ -120,42 +79,35 @@ public class OptimumMomentumStrategy {
                     if (currentCandle.getHigh() > oneDayHigh) {
                         twoDayHigh = candlestickService.get48hHigh(i, name);
                         if (oneDayHigh > twoDayHigh) {
-                            double previousBalance = balance;
-//                            System.out.println("\n-------------------------");
-//                            System.out.println("BOUGHT " + name + " |" + new Date(currentCandle.getOpenTime()).toString());
-                            i = buyCoin(i, lastCandleId, oneDayHigh, name, profitTrigger, stopLossTrigger, deviance, optimistic);
-//                            System.out.println("Previous Balance:" + previousBalance + "|Current Balance:" + balance);
-//                            System.out.println("-------------------------\n");
+                            i = buyCoin(i, lastCandleId, oneDayHigh, name, profitTrigger, stopLossTrigger, deviance);
                         }
                     }
                 }
             }
         }
 
-        printResults(optimistic);
+        StrategyRun strategyRun = new StrategyRun();
+        strategyRun.setPercentageTrigger(percentageTrigger);
+        strategyRun.setProfitTrigger(profitTrigger);
+        strategyRun.setStopLossTrigger(stopLossTrigger);
+        strategyRun.setDeviance(deviance);
+        strategyRun.setSplitTimes(splitCounter);
+        strategyRun.setOpenTime(firstOpen);
+        strategyRun.setCloseTime(lastOpen);
+
+        changeOptimistic = ((balanceOpt - initialBalance) * 100) / initialBalance;
+        changePessimistic = ((balancePes - initialBalance) * 100) / initialBalance;
+        strategyRun.setChangeOptimistic(changeOptimistic);
+        strategyRun.setChangePessimistic(changePessimistic);
+
+        strategyRun.setId(null);
+
+        strategyRunService.save(strategyRun);
+
         return true;
     }
 
-    private void printResults(boolean optimistic) {
-        synchronized (lock) {
-            System.out.println("\n\n---------------------------------");
-            System.out.println("Timeline was split " + splitCounter + " times | Optimistic:" + optimistic);
-            if (optimistic) {
-                System.out.println("Final Balance is " + balanceOpt + "$");
-            } else {
-                System.out.println("Final Balance is " + balancePes + "$");
-            }
-
-            long elapsedTime = System.currentTimeMillis() - start;
-            Date date = new Date(elapsedTime);
-            DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
-            formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
-            String dateFormatted = formatter.format(date);
-            System.out.println("TIME ELAPSED: " + dateFormatted);
-        }
-    }
-
-    public int buyCoin(int index, int lastMinute, double priceBought, String name, double profitTrigger, double stopLossTrigger, double deviance, boolean optimistic) {
+    public int buyCoin(int index, int lastMinute, double priceBought, String name, double profitTrigger, double stopLossTrigger, double deviance) {
 
         CustomCandlestick currentCandle;
         boolean profit = false;
@@ -176,28 +128,23 @@ public class OptimumMomentumStrategy {
             }
 
             if (profit && stopLoss) {
-                if (optimistic) {
-                    splitCounter++;
-                    // INCREASE TRAIL
-                    double percentageChange = (currentCandle.getHigh() - priceBought) / priceBought;
+                double initialStopLossTrigger = stopLossTrigger;
 
-                    stopLossTriger = percentageChange - deviance;
-                    stopLossTriger = (priceBought * stopLossTriger) + priceBought;
+                splitCounter++;
+                // OPTIMISTIC
+                double percentageChange = (currentCandle.getHigh() - priceBought) / priceBought;
+                stopLossTriger = percentageChange - deviance;
+                stopLossTriger = (priceBought * stopLossTriger) + priceBought;
+                percentageChange = (stopLossTriger - priceBought) / priceBought;
 
-                    // STOP LOSS
-                    percentageChange = (stopLossTriger - priceBought) / priceBought;
+                balanceOpt = balanceOpt + (balanceOpt * percentageChange);
 
-                    balanceOpt = balanceOpt + (balanceOpt * percentageChange);
-                    // System.out.println("SOLD " + name + " | " + new Date(currentCandle.getOpenTime()));
-                    return i;
-                } else {
-                    // STOP LOSS
-                    double percentageChange = (stopLossTriger - priceBought) / priceBought;
 
-                    balancePes = balancePes + (balancePes * percentageChange);
-                    // System.out.println("SOLD " + name + " | " + new Date(currentCandle.getOpenTime()));
-                    return i;
-                }
+                // PESSIMISTIC
+                percentageChange = (initialStopLossTrigger - priceBought) / priceBought;
+                balancePes = balancePes + (balancePes * percentageChange);
+                return i;
+
             } else if (profit) {
                 // INCREASE TRAIL
                 double percentageChange = (currentCandle.getHigh() - priceBought) / priceBought;
@@ -208,32 +155,20 @@ public class OptimumMomentumStrategy {
                 // CHECK IF CLOSE PRICE IS LOWER THAN NEW STOP LOSS TRIGGER
                 if (currentCandle.getClose() <= stopLossTriger) {
                     percentageChange = (stopLossTriger - priceBought) / priceBought;
-                    if (optimistic) {
-                        balanceOpt = balanceOpt + (balanceOpt * percentageChange);
-                    } else {
-                        balancePes = balancePes + (balancePes * percentageChange);
-                    }
-
-                    // System.out.println("SOLD " + name + " | " + new Date(currentCandle.getOpenTime()));
+                    balanceOpt = balanceOpt + (balanceOpt * percentageChange);
+                    balancePes = balancePes + (balancePes * percentageChange);
                     return i;
                 }
-
                 // RESET PROFIT TRIGGER
                 previousHigh = currentCandle.getHigh();
                 profit = false;
             } else if (stopLoss) {
                 double percentageChange = (stopLossTriger - priceBought) / priceBought;
-
-                if (optimistic) {
-                    balanceOpt = balanceOpt + (balanceOpt * percentageChange);
-                } else {
-                    balancePes = balancePes + (balancePes * percentageChange);
-                }
-                // System.out.println("SOLD " + name + " | " + new Date(currentCandle.getOpenTime()));
+                balanceOpt = balanceOpt + (balanceOpt * percentageChange);
+                balancePes = balancePes + (balancePes * percentageChange);
                 return i;
             }
         }
-
         return lastMinute;
     }
 

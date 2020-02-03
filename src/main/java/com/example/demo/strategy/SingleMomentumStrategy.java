@@ -29,15 +29,19 @@ public class SingleMomentumStrategy {
     private double changeOptimistic;
     private double changePessimistic;
 
-    public boolean startSimulation(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, double balance) {
+    public boolean startSimulation(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, double balance, long firstOpen, long lastOpen) {
+
+        System.out.println("------------------------");
+        System.out.println("Starting Simulation");
+        System.out.println("------------------------");
 
         balanceOpt = balance;
         balancePes = balance;
         splitCounter = 0;
 
 
-        int firstCandleId = 1;
-        int lastCandleId = candlestickService.getLastMinute(coins.get(0).getClass().getSimpleName());
+        int firstCandleId = candlestickService.getFirstMinute(firstOpen, coins.get(0).getClass().getSimpleName());
+        int lastCandleId = candlestickService.getLastMinute(lastOpen, coins.get(0).getClass().getSimpleName());
 
         CustomCandlestick currentCandle;
 

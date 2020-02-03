@@ -17,7 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static com.example.demo.Values.coins;
+import static com.example.demo.Values.*;
 
 @Component
 public class DatabaseUtil {
@@ -131,11 +131,10 @@ public class DatabaseUtil {
         pool.shutdown();
 
         if (!assertDatesDB()) {
-            dataDownloader.closeMemCache();
+            //dataDownloader.closeMemCache();
             return false;
         }
 
-        dataDownloader.closeMemCache();
         return true;
     }
 
@@ -190,7 +189,9 @@ public class DatabaseUtil {
 
         try {
             dataDownloader.getData(coinName, openTime, endTime);
-        } catch (ParseException e) {
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -235,8 +236,15 @@ public class DatabaseUtil {
     public void initCoins() throws IllegalAccessException, InstantiationException {
         Reflections reflections = new Reflections("com.example.demo");
         Set<Class<? extends CustomCandlestick>> classes = reflections.getSubTypesOf(CustomCandlestick.class);
+        if(ALL_COINS){
+
+        }
         for (Class<? extends CustomCandlestick> coin : classes) {
-            coins.add(coin.newInstance());
+            for(String legitCoin : coinsToAdd){
+                if(legitCoin.equals(coin.getSimpleName())){
+                    coins.add(coin.newInstance());
+                }
+            }
         }
     }
 

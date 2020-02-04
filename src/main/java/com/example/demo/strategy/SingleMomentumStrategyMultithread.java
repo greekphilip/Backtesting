@@ -10,10 +10,10 @@ import org.springframework.stereotype.Component;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import static com.example.demo.Main.start;
 import static com.example.demo.Values.*;
@@ -33,9 +33,6 @@ public class SingleMomentumStrategyMultithread {
     private double balancePes;
     private int splitCounter;
 
-    private Integer numberOfActiveCoins;
-//    private long simOpenTime;
-//    private long simCloseTime;
 
     private Set<Integer> set = new HashSet<>();
     private double changeOptimistic;
@@ -44,14 +41,45 @@ public class SingleMomentumStrategyMultithread {
     private int universalIndex;
 
 
-    private int startFuture(int i) {
+    private Map<String, Integer> startFuture(int firstCandleId, int lastCandleId, String name, double percentageTrigger) {
+        CustomCandlestick currentCandle;
 
-        return 0;
+        double open;
+
+        double yesterdayOpen;
+
+        double percentageChange;
+        double oneDayHigh;
+        double twoDayHigh;
+
+
+        for (int i = firstCandleId + TWO_DAYS; i < lastCandleId; i++) {
+            currentCandle = candlestickService.getById(i, name);
+
+            open = currentCandle.getOpen();
+            yesterdayOpen = candlestickService.getById(i - ONE_DAY, name).getOpen();
+
+            percentageChange = ((open - yesterdayOpen) * 100) / yesterdayOpen;
+
+            if (percentageChange > percentageTrigger) {
+                oneDayHigh = candlestickService.get24hHigh(i, name);
+                if (currentCandle.getHigh() > oneDayHigh) {
+                    twoDayHigh = candlestickService.get48hHigh(i, name);
+                    if (oneDayHigh > twoDayHigh) {
+                        Map<String, Integer> map = new HashMap<>();
+                        map.put(name, i);
+                        return map;
+                    }
+                }
+
+            }
+        }
+        Map<String, Integer> map = new HashMap<>();
+        map.put(name, lastCandleId);
+        return map;
     }
 
-    public boolean startSimulation(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, double balance, long firstOpen, long lastOpen) {
-
-
+    public void startSimulation(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, double balance, long firstOpen, long lastOpen) throws ExecutionException, InterruptedException {
         executorService = Executors.newFixedThreadPool(coins.size());
 
         System.out.println("------------------------");
@@ -61,71 +89,59 @@ public class SingleMomentumStrategyMultithread {
         balanceOpt = balance;
         balancePes = balance;
         splitCounter = 0;
-
+        Map<String, Integer> mapIndexes = new HashMap<>();
+        Map<String, CompletableFuture<Map<String, Integer>>> mapFutures = new HashMap<>();
 
         int firstCandleId = candlestickService.getFirstMinute(firstOpen, coins.get(0).getClass().getSimpleName());
         int lastCandleId = candlestickService.getLastMinute(lastOpen, coins.get(0).getClass().getSimpleName());
+        String minCoin = "null";
+        int minIndex = Integer.MAX_VALUE;
+        List<CompletableFuture<Map<String, Integer>>> futures = new ArrayList<>();
+        CompletableFuture<Map<String, Integer>> toRemove = null;
 
-        List<Future<?>> futures = new ArrayList<>();
 
-        for (int i = firstCandleId + TWO_DAYS; i < lastCandleId; i++) {
-            universalIndex = i;
+        universalIndex = firstCandleId;
+        while (universalIndex < lastCandleId) {
             for (CustomCandlestick coin : coins) {
-                futures.add(executorService.submit(applicationContext.getBean(SimulationJob.class)));
-            }
-        }
-
-        for (CustomCandlestick coin : coins) {
-            Future<?> future = executorService.submit(() -> {
-                CustomCandlestick currentCandle;
-
-                double open;
-
-                double yesterdayOpen;
-
-                double percentageChange;
-                double oneDayHigh;
-                double twoDayHigh;
-
-
-                for (int i = firstCandleId + TWO_DAYS; i < lastCandleId; i++) {
-
-                    String name = coin.getClass().getSimpleName();
-                    currentCandle = candlestickService.getById(i, name);
-
-                    open = currentCandle.getOpen();
-                    yesterdayOpen = candlestickService.getById(i - ONE_DAY, name).getOpen();
-
-                    percentageChange = ((open - yesterdayOpen) * 100) / yesterdayOpen;
-
-                    if (percentageChange > percentageTrigger) {
-                        oneDayHigh = candlestickService.get24hHigh(i, name);
-                        if (currentCandle.getHigh() > oneDayHigh) {
-                            twoDayHigh = candlestickService.get48hHigh(i, name);
-                            if (oneDayHigh > twoDayHigh) {
-                                i = buyCoin(i, lastCandleId, oneDayHigh, name, profitTrigger, stopLossTrigger, deviance);
-                            }
-                        }
-
+                if (coin.getClass().getSimpleName().equals(minCoin) || minCoin.equals("null")) {
+                    futures.add(CompletableFuture.supplyAsync(() -> {
+                        return startFuture(universalIndex, lastCandleId, coin.getClass().getSimpleName(), percentageTrigger);
+                    }, executorService));
+                } else {
+                    if (mapIndexes.get(coin.getClass().getSimpleName()) <= minIndex) {
+                        futures.remove(mapFutures.get(coin.getClass().getSimpleName()));
+                        futures.add(CompletableFuture.supplyAsync(() -> {
+                            return startFuture(universalIndex, lastCandleId, coin.getClass().getSimpleName(), percentageTrigger);
+                        }, executorService));
                     }
                 }
-            });
-            futures.add(future);
-        }
-
-        for (Future future : futures) {
-            try {
-                future.get();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
             }
-        }
 
-        executorService.shutdown();
+            minIndex = Integer.MAX_VALUE;
+
+
+            for (CustomCandlestick coin : coins) {
+                for (CompletableFuture<Map<String, Integer>> future : futures) {
+                    if (future.get().get(coin.getClass().getSimpleName()) != null) {
+                        int currentIndex = future.get().get(coin.getClass().getSimpleName());
+                        if (currentIndex < minIndex) {
+                            minIndex = currentIndex;
+                            minCoin = coin.getClass().getSimpleName();
+                            toRemove = future;
+                        }
+                        mapIndexes.put(coin.getClass().getSimpleName(), currentIndex);
+                        mapFutures.put(coin.getClass().getSimpleName(), future);
+                    }
+                }
+            }
+            futures.remove(toRemove);
+            if (minIndex == lastCandleId) {
+                break;
+            }
+            universalIndex = buyCoin(minIndex, lastCandleId, candlestickService.get24hHigh(minIndex, minCoin), minCoin, profitTrigger, stopLossTrigger, deviance);
+        }
         printResults();
-        return true;
+        executorService.shutdown();
     }
 
     private void printResults() {
@@ -133,6 +149,9 @@ public class SingleMomentumStrategyMultithread {
         System.out.println("Timeline was split " + splitCounter + " times");
         System.out.println("Optimistic final Balance is " + balanceOpt + "$");
         System.out.println("Pessimistic final Balance is " + balancePes + "$");
+
+        System.out.println("Optimistic Change is " + changeOptimistic + "$");
+        System.out.println("Pessimistic Change is " + changePessimistic + "$");
 
         long elapsedTime = System.currentTimeMillis() - start;
         Date date = new Date(elapsedTime);
@@ -175,6 +194,7 @@ public class SingleMomentumStrategyMultithread {
 
                 // STOP LOSS
                 percentageChange = (stopLossTrigger - priceBought) / priceBought;
+                changeOptimistic=changeOptimistic + (percentageChange*100);
 
                 balanceOpt = balanceOpt + (balanceOpt * percentageChange);
 
@@ -182,7 +202,7 @@ public class SingleMomentumStrategyMultithread {
                 // PESSIMISTIC TIMELINE
                 // STOP LOSS
                 percentageChange = (initialStopLossTrigger - priceBought) / priceBought;
-
+                changePessimistic=changePessimistic + (percentageChange*100);
                 balancePes = balancePes + (balancePes * percentageChange);
                 return i;
 
@@ -196,7 +216,8 @@ public class SingleMomentumStrategyMultithread {
                 // CHECK IF CLOSE PRICE IS LOWER THAN NEW STOP LOSS TRIGGER
                 if (currentCandle.getClose() <= stopLossTrigger) {
                     percentageChange = (stopLossTrigger - priceBought) / priceBought;
-
+                    changePessimistic=changePessimistic + (percentageChange*100);
+                    changeOptimistic=changeOptimistic + (percentageChange*100);
                     balanceOpt = balanceOpt + (balanceOpt * percentageChange);
                     balancePes = balancePes + (balancePes * percentageChange);
                     return i;
@@ -207,7 +228,8 @@ public class SingleMomentumStrategyMultithread {
                 profit = false;
             } else if (stopLoss) {
                 double percentageChange = (stopLossTrigger - priceBought) / priceBought;
-
+                changePessimistic=changePessimistic + (percentageChange*100);
+                changeOptimistic=changeOptimistic + (percentageChange*100);
                 balanceOpt = balanceOpt + (balanceOpt * percentageChange);
                 balancePes = balancePes + (balancePes * percentageChange);
                 return i;

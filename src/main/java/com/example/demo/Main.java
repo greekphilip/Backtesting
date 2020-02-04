@@ -3,6 +3,7 @@ package com.example.demo;
 import com.example.demo.exception.InvalidDataException;
 import com.example.demo.strategy.OptimumMomentumStrategy;
 import com.example.demo.strategy.SingleMomentumStrategy;
+import com.example.demo.strategy.SingleMomentumStrategyMultithread;
 import com.example.demo.util.DataDownloader;
 import com.example.demo.util.DatabaseUtil;
 import com.example.demo.util.DateConverter;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -56,6 +58,9 @@ public class Main {
     SingleMomentumStrategy singleMomentumStrategy;
 
     @Autowired
+    SingleMomentumStrategyMultithread singleMomentumStrategyMultithread;
+
+    @Autowired
     DataDownloader dataDownloader;
 
     @Autowired
@@ -68,15 +73,15 @@ public class Main {
 
         long start = System.currentTimeMillis();
 
-        long beginDate = dateConverter.getLong(FIRST_DATE);
-        long endDate = dateConverter.getLong(LAST_DATE);
+        long beginDate = dateConverter.getLong("01-07-2019 13:00:00");
+        long endDate = dateConverter.getLong("25-07-2019 13:00:00");
 
 
         if (!databaseUtil.assertData()) {
             throw new InvalidDataException("Database data is not valid.");
         }
 
-        runSingleSimulation(beginDate, endDate);
+        runMultithreadSingleSimulation(beginDate, endDate);
 
 
         executorService.shutdown();
@@ -95,7 +100,7 @@ public class Main {
         });
     }
 
-    private void manualDownload(String coinName, long begin, long end){
+    private void manualDownload(String coinName, long begin, long end) {
         try {
             dataDownloader.getData(coinName, begin, end);
         } catch (IOException e) {
@@ -106,7 +111,7 @@ public class Main {
         System.exit(0);
     }
 
-    private void runSingleSimulation(long begin, long end){
+    private void runSingleSimulation(long begin, long end) {
         singleMomentumStrategy.startSimulation(5,
                                                0.015,
                                                0.036,
@@ -114,6 +119,22 @@ public class Main {
                                                100,
                                                begin,
                                                end);
+    }
+
+    private void runMultithreadSingleSimulation(long begin, long end) {
+        try {
+            singleMomentumStrategyMultithread.startSimulation(5,
+                                                              0.015,
+                                                              0.036,
+                                                              0.015,
+                                                              100,
+                                                              begin,
+                                                              end);
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void findOptimumParameters(long begin, long end) {

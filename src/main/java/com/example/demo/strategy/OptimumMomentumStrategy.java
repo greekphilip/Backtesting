@@ -13,10 +13,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import static com.example.demo.Main.lock;
 import static com.example.demo.Main.start;
@@ -32,11 +28,8 @@ public class OptimumMomentumStrategy {
     @Autowired
     StrategyRunService strategyRunService;
 
-    private double balanceOpt;
-    private double balancePes;
+
     private int splitCounter;
-//    private long simOpenTime;
-//    private long simCloseTime;
 
     private double changeOptimistic;
     private double changePessimistic;
@@ -47,8 +40,6 @@ public class OptimumMomentumStrategy {
 
     public boolean startSimulation(double percentageTrigger, double profitTrigger, double stopLossTrigger, double deviance, double initialBalance, long firstOpen, long lastOpen) {
 
-        balanceOpt = initialBalance;
-        balancePes = initialBalance;
         splitCounter = 0;
 
         int firstCandleId = candlestickService.getFirstMinute(firstOpen, coins.get(0).getClass().getSimpleName());
@@ -94,17 +85,25 @@ public class OptimumMomentumStrategy {
         strategyRun.setSplitTimes(splitCounter);
         strategyRun.setOpenTime(firstOpen);
         strategyRun.setCloseTime(lastOpen);
-
-        changeOptimistic = ((balanceOpt - initialBalance) * 100) / initialBalance;
-        changePessimistic = ((balancePes - initialBalance) * 100) / initialBalance;
         strategyRun.setChangeOptimistic(changeOptimistic);
         strategyRun.setChangePessimistic(changePessimistic);
 
         strategyRun.setId(null);
 
         strategyRunService.save(strategyRun);
-
+        printStats();
         return true;
+    }
+
+    public void printStats() {
+        synchronized (lock) {
+            long elapsedTime = System.currentTimeMillis() - start;
+            Date date = new Date(elapsedTime);
+            DateFormat formatter = new SimpleDateFormat("HH:mm:ss.SSS");
+            formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+            String dateFormatted = formatter.format(date);
+            System.out.println("TIME ELAPSED: " + dateFormatted);
+        }
     }
 
     public int buyCoin(int index, int lastMinute, double priceBought, String name, double profitTrigger, double stopLossTrigger, double deviance) {
@@ -137,12 +136,12 @@ public class OptimumMomentumStrategy {
                 stopLossTriger = (priceBought * stopLossTriger) + priceBought;
                 percentageChange = (stopLossTriger - priceBought) / priceBought;
 
-                balanceOpt = balanceOpt + (balanceOpt * percentageChange);
+                changeOptimistic = changeOptimistic + (percentageChange * 100);
 
 
                 // PESSIMISTIC
                 percentageChange = (initialStopLossTrigger - priceBought) / priceBought;
-                balancePes = balancePes + (balancePes * percentageChange);
+                changePessimistic = changePessimistic + (percentageChange * 100);
                 return i;
 
             } else if (profit) {
@@ -155,8 +154,8 @@ public class OptimumMomentumStrategy {
                 // CHECK IF CLOSE PRICE IS LOWER THAN NEW STOP LOSS TRIGGER
                 if (currentCandle.getClose() <= stopLossTriger) {
                     percentageChange = (stopLossTriger - priceBought) / priceBought;
-                    balanceOpt = balanceOpt + (balanceOpt * percentageChange);
-                    balancePes = balancePes + (balancePes * percentageChange);
+                    changeOptimistic = changeOptimistic + (percentageChange * 100);
+                    changePessimistic = changePessimistic + (percentageChange * 100);
                     return i;
                 }
                 // RESET PROFIT TRIGGER
@@ -164,8 +163,8 @@ public class OptimumMomentumStrategy {
                 profit = false;
             } else if (stopLoss) {
                 double percentageChange = (stopLossTriger - priceBought) / priceBought;
-                balanceOpt = balanceOpt + (balanceOpt * percentageChange);
-                balancePes = balancePes + (balancePes * percentageChange);
+                changeOptimistic = changeOptimistic + (percentageChange * 100);
+                changePessimistic = changePessimistic + (percentageChange * 100);
                 return i;
             }
         }

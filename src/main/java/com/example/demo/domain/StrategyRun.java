@@ -39,4 +39,7 @@ public class StrategyRun {
     @Column(name = "deviance")
     private double deviance;
 
+    @Column(name = "bought_same_time")
+    private int boughtSameTime;
+
 }

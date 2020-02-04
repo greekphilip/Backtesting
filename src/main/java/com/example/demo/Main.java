@@ -2,6 +2,7 @@ package com.example.demo;
 
 import com.example.demo.exception.InvalidDataException;
 import com.example.demo.strategy.OptimumMomentumStrategy;
+import com.example.demo.strategy.OptimumMomentumStrategyMultithread;
 import com.example.demo.strategy.SingleMomentumStrategy;
 import com.example.demo.strategy.SingleMomentumStrategyMultithread;
 import com.example.demo.util.DataDownloader;
@@ -47,7 +48,7 @@ public class Main {
     private static final double initialBalance = 100;
     public final static Integer lock = 1;
 
-    private ExecutorService executorService = Executors.newFixedThreadPool(200);
+    private ExecutorService executorService = Executors.newFixedThreadPool(300);
 
     public static long start = System.currentTimeMillis();
 
@@ -73,30 +74,47 @@ public class Main {
 
         long start = System.currentTimeMillis();
 
-        long beginDate = dateConverter.getLong("01-07-2019 13:00:00");
-        long endDate = dateConverter.getLong("25-07-2019 13:00:00");
+        long beginDate = dateConverter.getLong("01-01-2020 13:00:00");
+        long endDate = dateConverter.getLong("08-01-2020 13:00:00");
 
 
         if (!databaseUtil.assertData()) {
             throw new InvalidDataException("Database data is not valid.");
         }
 
-        runMultithreadSingleSimulation(beginDate, endDate);
-
+        runMultithreadOptimumStrategySimulation(beginDate, endDate);
 
         executorService.shutdown();
     }
 
 
-    private void startSimulation(double percentage, double profit, double stopLoss, double deviance, long beginDate, long endDate) {
+    private void startOptimumThread(double percentage, double profit, double stopLoss, double deviance, long beginDate, long endDate) {
         executorService.submit(() -> {
             applicationContext.getBean(OptimumMomentumStrategy.class).startSimulation(percentage,
-                                                                                      profit,
-                                                                                      stopLoss,
-                                                                                      deviance,
-                                                                                      initialBalance,
-                                                                                      beginDate,
-                                                                                      endDate);
+                    profit,
+                    stopLoss,
+                    deviance,
+                    initialBalance,
+                    beginDate,
+                    endDate);
+        });
+    }
+
+    private void startOptimumMultithread(double percentage, double profit, double stopLoss, double deviance, long beginDate, long endDate) {
+        executorService.submit(() -> {
+            try {
+                applicationContext.getBean(OptimumMomentumStrategyMultithread.class).startSimulation(percentage,
+                        profit,
+                        stopLoss,
+                        deviance,
+                        initialBalance,
+                        beginDate,
+                        endDate);
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         });
     }
 
@@ -113,23 +131,23 @@ public class Main {
 
     private void runSingleSimulation(long begin, long end) {
         singleMomentumStrategy.startSimulation(5,
-                                               0.015,
-                                               0.036,
-                                               0.015,
-                                               100,
-                                               begin,
-                                               end);
+                0.015,
+                0.036,
+                0.015,
+                100,
+                begin,
+                end);
     }
 
     private void runMultithreadSingleSimulation(long begin, long end) {
         try {
             singleMomentumStrategyMultithread.startSimulation(5,
-                                                              0.015,
-                                                              0.036,
-                                                              0.015,
-                                                              100,
-                                                              begin,
-                                                              end);
+                    0.015,
+                    0.036,
+                    0.015,
+                    100,
+                    begin,
+                    end);
         } catch (ExecutionException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -137,33 +155,71 @@ public class Main {
         }
     }
 
-    private void findOptimumParameters(long begin, long end) {
-        int counter = 0;
+    private void runMultithreadOptimumStrategySimulation(long begin, long end) {
+//        int counter = 0;
+//
+//
+//        for (percentage = MIN_PERCENTAGE; percentage <= MAX_PERCENTAGE; percentage = percentage + 1) {
+//            for (profit = MIN_PROFIT; profit <= MAX_PROFIT; profit = profit + 0.001) {
+//                for (stopLoss = MIN_STOP_LOSS; stopLoss <= MAX_STOP_LOSS; stopLoss = stopLoss + 0.001) {
+//                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.001) {
+//                        counter++;
+//                    }
+//                }
+//            }
+//        }
+//
+//        System.out.println("-------------------------------------");
+//        System.out.println("Number of simulations:" + counter);
+//        System.out.println("-------------------------------------");
+//
+//        for (percentage = MIN_PERCENTAGE; percentage <= MAX_PERCENTAGE; percentage = percentage + 1) {
+//            for (profit = MIN_PROFIT; profit <= MAX_PROFIT; profit = profit + 0.001) {
+//                for (stopLoss = MIN_STOP_LOSS; stopLoss <= MAX_STOP_LOSS; stopLoss = stopLoss + 0.001) {
+//                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.001) {
+//                        startOptimumMultithread(percentage, profit, stopLoss, deviance, begin, end);
+//                    }
+//                }
+//            }
+//        }
+
+        for (int i = 0; i < 1000; i++) {
+            startOptimumMultithread(percentage, MIN_PROFIT, MIN_STOP_LOSS, MIN_DEVIANCE, begin, end);
+        }
+    }
+
+    private void runOptimumStrategySimulation(long begin, long end) {
+//        int counter = 0;
+//
+//
+//        for (percentage = MIN_PERCENTAGE; percentage <= MAX_PERCENTAGE; percentage = percentage + 1) {
+//            for (profit = MIN_PROFIT; profit <= MAX_PROFIT; profit = profit + 0.001) {
+//                for (stopLoss = MIN_STOP_LOSS; stopLoss <= MAX_STOP_LOSS; stopLoss = stopLoss + 0.001) {
+//                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.001) {
+//                        counter++;
+//                    }
+//                }
+//            }
+//        }
+//
+//        System.out.println("-------------------------------------");
+//        System.out.println("Number of simulations:" + counter);
+//        System.out.println("-------------------------------------");
 
 
-        for (percentage = MIN_PERCENTAGE; percentage <= MAX_PERCENTAGE; percentage = percentage + 1) {
-            for (profit = MIN_PROFIT; profit <= MAX_PROFIT; profit = profit + 0.001) {
-                for (stopLoss = MIN_STOP_LOSS; stopLoss <= MAX_STOP_LOSS; stopLoss = stopLoss + 0.001) {
-                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.001) {
-                        counter++;
-                    }
-                }
-            }
+        for (int i = 0; i < 840; i++) {
+            startOptimumThread(percentage, MIN_PROFIT, MIN_STOP_LOSS, MIN_DEVIANCE, begin, end);
         }
 
-        System.out.println("-------------------------------------");
-        System.out.println("Number of simulations:" + counter);
-        System.out.println("-------------------------------------");
-
-        for (percentage = MIN_PERCENTAGE; percentage <= MAX_PERCENTAGE; percentage = percentage + 1) {
-            for (profit = MIN_PROFIT; profit <= MAX_PROFIT; profit = profit + 0.001) {
-                for (stopLoss = MIN_STOP_LOSS; stopLoss <= MAX_STOP_LOSS; stopLoss = stopLoss + 0.001) {
-                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.001) {
-                        startSimulation(percentage, profit, stopLoss, deviance, begin, end);
-                    }
-                }
-            }
-        }
+//        for (percentage = MIN_PERCENTAGE; percentage <= MAX_PERCENTAGE; percentage = percentage + 1) {
+//            for (profit = MIN_PROFIT; profit <= MAX_PROFIT; profit = profit + 0.001) {
+//                for (stopLoss = MIN_STOP_LOSS; stopLoss <= MAX_STOP_LOSS; stopLoss = stopLoss + 0.001) {
+//                    for (deviance = MIN_DEVIANCE; deviance <= profit; deviance = deviance + 0.001) {
+//                        startOptimumThread(percentage, profit, stopLoss, deviance, begin, end);
+//                    }
+//                }
+//            }
+//        }
     }
 
 

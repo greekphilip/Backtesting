@@ -65,14 +65,15 @@ public class DatabaseUtil {
                 String tableName = coin.getClass().getSimpleName().toLowerCase();
 
                 printer.println("CREATE TABLE IF NOT EXISTS backtesting." + tableName + " (" +
-                        "\topentime int8 NULL," +
-                        "\t\"open\" numeric NULL," +
-                        "\thigh numeric NULL," +
-                        "\tlow numeric NULL," +
-                        "\t\"close\" numeric NULL," +
-                        "\tid int4 NOT NULL," +
-                        "\tCONSTRAINT " + tableName + "_pk PRIMARY KEY (id)" +
-                        ");");
+                                        "\topentime int8 NULL," +
+                                        "\t\"open\" numeric NULL," +
+                                        "\thigh numeric NULL," +
+                                        "\tlow numeric NULL," +
+                                        "\t\"close\" numeric NULL," +
+                                        "\tid int4 NOT NULL," +
+                                        "\tvolume numeric NULL," +
+                                        "\tCONSTRAINT " + tableName + "_pk PRIMARY KEY (id)" +
+                                        ");");
             }
         } catch (IOException e) {
             System.err.println("Something went worng. Input Output");
@@ -84,8 +85,8 @@ public class DatabaseUtil {
             boolean validChoice = false;
             while (!validChoice) {
                 System.out.println("\n1. exit" +
-                        "\n2. assert texts" +
-                        "\n3. coin name you want to set as valid dates");
+                                           "\n2. assert texts" +
+                                           "\n3. coin name you want to set as valid dates");
 
                 String choice = userInput.nextLine();
 
@@ -236,12 +237,12 @@ public class DatabaseUtil {
     public void initCoins() throws IllegalAccessException, InstantiationException {
         Reflections reflections = new Reflections("com.example.demo");
         Set<Class<? extends CustomCandlestick>> classes = reflections.getSubTypesOf(CustomCandlestick.class);
-        if(ALL_COINS){
+        if (ALL_COINS) {
 
         }
         for (Class<? extends CustomCandlestick> coin : classes) {
-            for(String legitCoin : coinsToAdd){
-                if(legitCoin.equals(coin.getSimpleName())){
+            for (String legitCoin : coinsToAdd) {
+                if (legitCoin.equals(coin.getSimpleName())) {
                     coins.add(coin.newInstance());
                 }
             }

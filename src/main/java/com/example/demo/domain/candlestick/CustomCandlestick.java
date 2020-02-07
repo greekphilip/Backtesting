@@ -2,7 +2,9 @@ package com.example.demo.domain.candlestick;
 
 import lombok.Data;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Id;
+import javax.persistence.MappedSuperclass;
 
 @Data
 @MappedSuperclass
@@ -27,4 +29,7 @@ public class CustomCandlestick {
 
     @Column(name = "close")
     private double close;
+
+    @Column(name = "volume")
+    private Double volume;
 }

@@ -4,12 +4,10 @@ import com.example.demo.domain.candlestick.CustomCandlestick;
 import com.example.demo.repository.CandlestickJPARepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-
 import java.util.Date;
 
 import static com.example.demo.Values.*;
@@ -43,6 +41,11 @@ public class CandlestickService {
     @Transactional
     public void save(CustomCandlestick candlestick) {
         repository.save(candlestick);
+    }
+
+    @Transactional
+    public void update(CustomCandlestick candlestick, String table) {
+        repository.update(candlestick, table);
     }
 
     @Cacheable("size")

@@ -65,6 +65,23 @@ public class CandlestickJPARepository {
         em.persist(customCandlestick);
     }
 
+    public void update(CustomCandlestick candlestick, String table) {
+        Query jpqlQuery = em.createQuery("update " + table + " set opentime=:opentime, " +
+                                                 "open=:open," +
+                                                 "high=:high," +
+                                                 "low=:low," +
+                                                 "close=:close," +
+                                                 "volume=:volume where id=:id");
+        jpqlQuery.setParameter("opentime", candlestick.getOpenTime());
+        jpqlQuery.setParameter("open", candlestick.getOpen());
+        jpqlQuery.setParameter("high", candlestick.getHigh());
+        jpqlQuery.setParameter("low", candlestick.getLow());
+        jpqlQuery.setParameter("close", candlestick.getClose());
+        jpqlQuery.setParameter("volume", candlestick.getVolume());
+        jpqlQuery.setParameter("id", candlestick.getId());
+        jpqlQuery.executeUpdate();
+    }
+
     public long count(String table) {
         Query jpqlQuery = em.createQuery("Select count(id) from " + table);
         return (Long) jpqlQuery.getSingleResult();

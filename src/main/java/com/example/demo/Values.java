@@ -7,6 +7,8 @@ import java.util.List;
 
 public class Values {
 
+    public static final int ONE_HOUR = 60;
+    public static final int TWO_HOURS = 120;
     public static final int ONE_DAY = 1440;
     public static final int TWO_DAYS = 2880;
     public static final boolean ALL_COINS = false;

@@ -59,7 +59,7 @@ public class OptimumMomentumStrategyMultithread {
             currentCandle = candlestickService.getById(i, name);
 
             open = currentCandle.getOpen();
-            yesterdayOpen = candlestickService.getById(i - ONE_DAY, name).getOpen();
+            yesterdayOpen = candlestickService.getById(i - ONE_HOUR, name).getOpen();
 
             percentageChange = ((open - yesterdayOpen) * 100) / yesterdayOpen;
 
